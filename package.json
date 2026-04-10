@@ -1,6 +1,6 @@
 {
-  "name": "whale-v4",
-  "version": "4.0.0",
+  "name": "whale-v5-ai",
+  "version": "5.0.0",
   "type": "module",
   "scripts": {
     "start": "node server.js"
