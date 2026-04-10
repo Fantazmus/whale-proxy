@@ -1,6 +1,6 @@
 {
-  "name": "whale-v6-god-mode",
-  "version": "6.0.0",
+  "name": "whale-v8-blackrock",
+  "version": "8.0.0",
   "type": "module",
   "scripts": {
     "start": "node server.js"
