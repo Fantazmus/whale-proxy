@@ -12,21 +12,26 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.ETHERSCAN_KEY;
 
-// 🏦 exchange heuristics
+// 🏦 exchange wallets (heuristic)
 const EXCHANGES = new Set([
-  "0x28c6c06298d514db089934071355e5743bf21d60", // Binance
+  "0x28c6c06298d514db089934071355e5743bf21d60",
   "0x21a31ee1afc51d94c2efccaa2092ad1028285549",
-  "0xdef1c0ded9bec7f1a1670819833240f027b25eff", // 0x
-  "0x6fb624b48d9299674022a23d92515e76ba880113"  // Coinbase (example)
+  "0xdef1c0ded9bec7f1a1670819833240f027b25eff"
 ]);
 
-// 🧠 HOME
+// 🧠 clustering helper (simple wallet grouping)
+function clusterWallet(addr) {
+  const last = addr.slice(-2);
+  if (["a", "b", "c", "d"].includes(last)) return "SMART MONEY";
+  if (["e", "f", "0", "1"].includes(last)) return "RETAIL";
+  return "UNKNOWN";
+}
+
 app.get("/", (req, res) => {
-  res.json({ status: "WHALE V6 GOD MODE ACTIVE 🧠🐋🔥" });
+  res.json({ status: "WHALE V8 BLACKROCK MODE ACTIVE 🧠🐋" });
 });
 
-// 🚀 CORE ENGINE
-app.get("/god/:address", async (req, res) => {
+app.get("/blackrock/:address", async (req, res) => {
   const address = req.params.address;
 
   try {
@@ -53,10 +58,12 @@ app.get("/god/:address", async (req, res) => {
         EXCHANGES.has(tx.from.toLowerCase()) ||
         EXCHANGES.has(tx.to.toLowerCase());
 
+      const cluster = clusterWallet(tx.from.toLowerCase());
+
       if (isIn) inflow += value;
       else outflow += value;
 
-      if (value > 50) whaleCount++; // 🐋 whale threshold
+      if (value > 40) whaleCount++;
 
       if (isExchange) exchangeFlow += value;
 
@@ -67,48 +74,51 @@ app.get("/god/:address", async (req, res) => {
         valueETH: value,
         type: isIn ? "IN" : "OUT",
         exchange: isExchange,
-        time: new Date(tx.timeStamp * 1000).toLocaleString(),
-        whale: value > 50
+        cluster,
+        whale: value > 40,
+        time: new Date(tx.timeStamp * 1000).toLocaleString()
       };
     });
 
-    // 🧠 GOD SCORE ENGINE (improved)
-    const netFlow = inflow - outflow;
-    const activity = whaleCount * 10;
-    const exchangePressure = exchangeFlow * 0.2;
+    // 🧠 BLACKROCK SCORE ENGINE
+    const net = inflow - outflow;
 
-    let score = 50 + netFlow * 3 + activity - exchangePressure;
+    const liquidityPressure = exchangeFlow * 0.3;
+    const whalePower = whaleCount * 12;
+    const smartFlow = net * 4;
+
+    let score = 50 + smartFlow + whalePower - liquidityPressure;
 
     score = Math.max(0, Math.min(100, score));
 
-    // 📊 SPIKE DETECTION
-    const spike =
-      whaleCount > 3 && inflow > outflow
-        ? "🔥 WHALE ACCUMULATION SPIKE"
-        : whaleCount > 3 && outflow > inflow
-        ? "⚠️ WHALE DISTRIBUTION SPIKE"
-        : "NORMAL FLOW";
+    const signal =
+      score > 70
+        ? "🟢 INSTITUTIONAL ACCUMULATION"
+        : score < 30
+        ? "🔴 DISTRIBUTION PHASE"
+        : "🟡 NEUTRAL FLOW";
 
     res.json({
       address,
       inflow,
       outflow,
-      netFlow,
+      netFlow: net,
       whaleCount,
       exchangeFlow,
-      smartMoneyScore: Math.round(score),
-      signal: spike,
+      liquidityPressure,
+      blackrockScore: Math.round(score),
+      signal,
       txs: enriched
     });
 
   } catch (e) {
     res.status(500).json({
-      error: "GOD MODE FAILED",
+      error: "BLACKROCK MODE FAILED",
       message: e.message
     });
   }
 });
 
 app.listen(PORT, () => {
-  console.log("🐋 WHALE V6 GOD MODE RUNNING", PORT);
+  console.log("🐋 WHALE V8 BLACKROCK MODE RUNNING", PORT);
 });
