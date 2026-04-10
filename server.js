@@ -9,62 +9,45 @@ const PORT = process.env.PORT || 3000;
 
 const API_KEY = process.env.ETHERSCAN_KEY;
 
-// 🎯 helper: detect whale tier
-function classifyWhale(valueEth) {
-  if (valueEth > 1000) return "MEGA WHALE 🐋";
-  if (valueEth > 200) return "WHALE 🐋";
-  if (valueEth > 50) return "SMART MONEY 🧠";
-  return "RETAIL";
-}
+app.get("/", (req, res) => {
+  res.send("WHALE V3 OK 🐋");
+});
 
-// 🔥 ETH TX
 app.get("/eth/:address", async (req, res) => {
-  const { address } = req.params;
-
-  const url = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=${address}&apikey=${API_KEY}`;
+  const address = req.params.address;
 
   try {
-    const response = await fetch(url);
-    const data = await response.json();
+    const url = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=${address}&sort=desc&apikey=${API_KEY}`;
 
-    if (!data.result) return res.json({ error: "no data" });
+    const r = await fetch(url);
+    const data = await r.json();
 
-    const cleaned = data.result.slice(0, 20).map(tx => {
-      const ethValue = Number(tx.value) / 1e18;
+    // 🔥 DEBUG (очень важно)
+    console.log(data);
 
-      return {
-        time: new Date(tx.timeStamp * 1000).toLocaleString(),
-        from: tx.from,
-        to: tx.to,
-        valueETH: ethValue,
-        type: tx.from.toLowerCase() === address.toLowerCase() ? "OUT" : "IN",
-        label: classifyWhale(ethValue),
-        hash: tx.hash
-      };
-    });
+    if (!data || !data.result || !Array.isArray(data.result)) {
+      return res.json({
+        error: "NO DATA OR API LIMIT",
+        raw: data
+      });
+    }
 
-    res.json(cleaned);
+    const result = data.result.slice(0, 20).map(tx => ({
+      hash: tx.hash,
+      from: tx.from,
+      to: tx.to,
+      valueETH: Number(tx.value) / 1e18,
+      time: new Date(tx.timeStamp * 1000).toLocaleString(),
+      type: tx.from.toLowerCase() === address.toLowerCase() ? "OUT" : "IN"
+    }));
+
+    res.json(result);
+
   } catch (e) {
     res.json({ error: e.message });
   }
 });
 
-// 🟡 BSC SUPPORT
-app.get("/bsc/:address", async (req, res) => {
-  const { address } = req.params;
-
-  const url = `https://api.etherscan.io/v2/api?chainid=56&module=account&action=txlist&address=${address}&apikey=${API_KEY}`;
-
-  const response = await fetch(url);
-  const data = await response.json();
-
-  res.json(data.result || []);
-});
-
-app.get("/", (req, res) => {
-  res.send("WHALE V3 PRO 🐋 RUNNING");
-});
-
 app.listen(PORT, () => {
-  console.log("WHALE V3 RUNNING ON", PORT);
+  console.log("RUNNING ON", PORT);
 });
